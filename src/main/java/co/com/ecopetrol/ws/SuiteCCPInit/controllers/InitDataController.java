@@ -6,6 +6,7 @@ import java.io.File;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.URL;
+import java.util.Map;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.util.ResourceUtils;
@@ -43,6 +44,11 @@ public class InitDataController {
         this.env = env;
     }
 
+    @GetMapping(path = "getMapValuesFromRTUScada")
+    public Map<String, Double> getMapValuesFromRTUScada() {
+        return this.getSrvProcessManager().getMapValuesFromRTUScadaData();
+    }
+
     @GetMapping(path = "stopDataSG")
     public String stopDataSG(@RequestParam("sgName") String sgName) {
         this.getSrvProcessManager().stopSchedulerLoader(sgName);
@@ -50,31 +56,55 @@ public class InitDataController {
     }
 
     @GetMapping(path = "initDataSG")
-    public String initDataSG(@RequestParam("sgName") String sgName, @RequestParam("port") Integer port) {
+    public String initDataSG(@RequestParam("sgName") String sgName) {
 //        try {
 //            Thread runnableProcess = new Thread() {
 //                @Override
 //                public void run() {
 //                    try {
-//                        //System.out.println("D1: " + sgName);
-//                        String pathFileJar = getEnv().getProperty("path.jarfiles");
-//                        String pathJavaBin = getEnv().getProperty("path.javaBin");
-//                        //System.out.println("D2: " + port.toString());
-//                        //System.out.println("D3");
-//                        //Runtime.getRuntime().exe
-//                        String cmdLine = pathJavaBin; //+ " -jar " + pathFileJar + " " + sgName + " --server.port=" + port.toString();
-//                        ProcessBuilder processBuilder = new ProcessBuilder(new String[]{pathJavaBin, "-jar", pathFileJar, sgName, "--server.port=" + port.toString()});
-//                        //processBuilder.command();
-//                        Process process = processBuilder.start();
-//
-//                        InputStream is = process.getInputStream();
-//                        InputStreamReader isr = new InputStreamReader(is);
-//                        BufferedReader br = new BufferedReader(isr);
-//                        String line;
-//                        while ((line = br.readLine()) != null) {
-//                            System.out.println(line);
+//                        Map<String, Integer> mapData = getSrvProcessManager().getMapPortsServiceData();
+//                        Integer portSelected = 8090;
+//                        while (mapData.containsValue(portSelected)) {
+//                            portSelected++;
 //                        }
-//                        process.wait();
+//                        Process process = null;
+//                        while (Boolean.TRUE) {
+//                            //System.out.println("D1: " + sgName);
+//                            String pathFileJar = getEnv().getProperty("path.jarfiles");
+//                            String pathJavaBin = getEnv().getProperty("path.javaBin");
+//                            //System.out.println("D2: " + port.toString());
+//                            //System.out.println("D3");
+//                            //Runtime.getRuntime().exe
+//                            String cmdLine = pathJavaBin; //+ " -jar " + pathFileJar + " " + sgName + " --server.port=" + port.toString();
+//                            ProcessBuilder processBuilder = new ProcessBuilder(new String[]{pathJavaBin, "-jar", pathFileJar, sgName, "--server.port=" + portSelected.toString()});
+//                            //processBuilder.command();
+//                            process = processBuilder.start();
+//
+//                            InputStream is = process.getInputStream();
+//                            InputStreamReader isr = new InputStreamReader(is);
+//                            BufferedReader br = new BufferedReader(isr);
+//                            String line;
+//                            StringBuilder strData = new StringBuilder();
+//                            while ((line = br.readLine()) != null) {
+//                                System.out.println(line);
+//                                strData.append(line);
+//                            }
+//                            if (strData.toString().contains("process running for")) {
+//                                System.out.println("Init Data para el port: " + portSelected.toString());
+//                                getSrvProcessManager().getMapPortsServiceData().put(sgName, portSelected);
+//                                if (portSelected != null) {
+//                                    getSrvProcessManager().initSchedulerLoader(sgName, portSelected);
+//                                }
+//                                break;
+//                            } else if (strData.toString().contains("was already in use")) {
+//                                portSelected++;
+//                            } else {
+//                                break;
+//                            }
+//                        }
+//                        if (process != null) {
+//                            process.wait();
+//                        }
 //                    } catch (Exception e) {
 //                    }
 //                }
@@ -97,7 +127,6 @@ public class InitDataController {
 //            e.printStackTrace();
 //        }
 
-        this.getSrvProcessManager().initSchedulerLoader(sgName, port);
         return "";
     }
 
