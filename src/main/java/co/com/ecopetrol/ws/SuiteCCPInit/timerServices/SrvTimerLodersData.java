@@ -1,6 +1,6 @@
 package co.com.ecopetrol.ws.SuiteCCPInit.timerServices;
 
-import co.com.ecopetrol.ws.SuiteCCPInit.services.interfaces.SrvProcessManager;
+
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;

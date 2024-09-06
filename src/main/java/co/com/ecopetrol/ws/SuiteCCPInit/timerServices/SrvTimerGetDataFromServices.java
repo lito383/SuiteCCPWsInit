@@ -51,7 +51,7 @@ public class SrvTimerGetDataFromServices implements Runnable {
                 continue;
             }
             String uri = "http://localhost:" + port.toString() + "/scangroup/getAllDataItems";
-            System.out.println("TRAYENDO DATA DESDE: " + uri);
+            //System.out.println("TRAYENDO DATA DESDE: " + uri);
             Map<String, Double> mapValues = null;
             try {
                 RestTemplate restTemplate = new RestTemplate(this.getClientHttpRequestFactory());
@@ -62,7 +62,7 @@ public class SrvTimerGetDataFromServices implements Runnable {
             if (mapValues == null) {
                 continue;
             }
-            System.out.println("        --> SIZE_RESPONSE: " + mapValues.keySet().size());
+           // System.out.println("        --> SIZE_RESPONSE: " + mapValues.keySet().size());
             if (mapValues == null) {
                 continue;
             }
