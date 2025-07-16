@@ -1,15 +1,10 @@
 package co.com.ecopetrol.ws.SuiteCCPInit.controllers;
 
 import co.com.ecopetrol.ws.SuiteCCPInit.services.interfaces.SrvProcessManager;
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.net.URL;
+import java.util.List;
 import java.util.Map;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
-import org.springframework.util.ResourceUtils;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -42,6 +37,11 @@ public class InitDataController {
 
     public void setEnv(Environment env) {
         this.env = env;
+    }
+
+    @GetMapping(path = "getLstTagsScadaFromCassandra")
+    public List<String> getLstTagsScadaFromCassandra() {
+        return this.getSrvProcessManager().getLstTagsScadaFromCassandraData();
     }
 
     @GetMapping(path = "getMapValuesFromRTUScada")

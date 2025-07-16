@@ -2,7 +2,6 @@ package co.com.ecopetrol.ws.SuiteCCPInit.timerServices;
 
 import co.com.ecopetrol.ws.SuiteCCPInit.services.interfaces.SrvProcessManager;
 import java.util.Map;
-import org.springframework.http.HttpMethod;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.web.client.RestTemplate;
 

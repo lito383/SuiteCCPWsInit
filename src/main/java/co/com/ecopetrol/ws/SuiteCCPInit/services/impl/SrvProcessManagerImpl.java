@@ -1,7 +1,12 @@
 package co.com.ecopetrol.ws.SuiteCCPInit.services.impl;
 
 import co.com.ecopetrol.ws.SuiteCCPInit.commons.GeneralsEjb;
+import co.com.ecopetrol.ws.SuiteCCPInit.entities.ScanGroupCalc;
+import co.com.ecopetrol.ws.SuiteCCPInit.entities.ScanGroupEngItem;
 import co.com.ecopetrol.ws.SuiteCCPInit.services.interfaces.SrvProcessManager;
+import co.com.ecopetrol.ws.SuiteCCPInit.services.interfaces.SrvScanGroupCalc;
+import co.com.ecopetrol.ws.SuiteCCPInit.services.interfaces.SrvTagsScada;
+import co.com.ecopetrol.ws.SuiteCCPInit.timerServices.SrvExecuteTimerScanGroupCalc;
 import co.com.ecopetrol.ws.SuiteCCPInit.timerServices.SrvTimerGetDataFromServices;
 import co.com.ecopetrol.ws.SuiteCCPInit.timerServices.SrvTimerLodersData;
 import com.datastax.oss.driver.api.core.CqlSession;
@@ -13,6 +18,7 @@ import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.InetSocketAddress;
+import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -24,7 +30,9 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.SortedMap;
 import java.util.TimeZone;
+import java.util.TreeMap;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
@@ -50,12 +58,106 @@ public class SrvProcessManagerImpl implements SrvProcessManager {
     private Map<String, Integer> mapPortsService = null;
     private Map<String, Double> mapValuesFromRTUScada = null;
     private ScheduledThreadPoolExecutor scheduledThreadPoolExecutorData = null;
+    private ScheduledThreadPoolExecutor scheduledThreadPoolExecutorRefreshTagScadaCassandra = null;
+    private Map<Long, ScheduledThreadPoolExecutor> mapScheduledThreadPoolExecutorExecuteScanGroupCalc = null;
+
+    private List<String> lstTagsScadaFromCassandra = null;
 
     @Autowired
     private ApplicationArguments args;
-
     @Autowired
     private Environment env;
+    @Autowired
+    private SrvTagsScada srvTagsScada;
+    @Autowired
+    private SrvScanGroupCalc srvScanGroupCalc;
+
+    private SimpleDateFormat simpleDateFormat = null;
+
+    public SrvScanGroupCalc getSrvScanGroupCalc() {
+        return srvScanGroupCalc;
+    }
+
+    public void setSrvScanGroupCalc(SrvScanGroupCalc srvScanGroupCalc) {
+        this.srvScanGroupCalc = srvScanGroupCalc;
+    }
+
+    public SimpleDateFormat getSimpleDateFormat() {
+        if (this.simpleDateFormat == null) {
+            this.simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
+        }
+        return simpleDateFormat;
+    }
+
+    public void setSimpleDateFormat(SimpleDateFormat simpleDateFormat) {
+        this.simpleDateFormat = simpleDateFormat;
+    }
+
+    @Override
+    public void saveAnalogDataCassandra(String tagData, Double valueData) throws Exception {
+        if (this.getSession().isClosed()) {
+            this.buildSession();
+        }
+        Calendar calendarCurrent = Calendar.getInstance();
+        String desTime = this.getSimpleDateFormat().format(calendarCurrent.getTime());
+        desTime += "-0500";
+        if (!this.getSession().isClosed()) {
+            String jql = "INSERT INTO ccp_data.analog(id, tag_data, time_stamp_local_data, value_data) VALUES(UUID(), '" + tagData + "', '" + desTime + "', " + valueData.toString() + ")";
+            //Logger logger = LoggerFactory.getLogger(SrvTimerGetEngData.class);
+            //logger.info("QUERY CASSANDRA INSERT: " + jql);
+            //System.out.println("QUERY CASSANDRA: " + jql);
+            this.getSession().execute(jql);
+        }
+    }
+
+    public SrvTagsScada getSrvTagsScada() {
+        return srvTagsScada;
+    }
+
+    public void setSrvTagsScada(SrvTagsScada srvTagsScada) {
+        this.srvTagsScada = srvTagsScada;
+    }
+
+    public Map<Long, ScheduledThreadPoolExecutor> getMapScheduledThreadPoolExecutorExecuteScanGroupCalc() {
+        if (this.mapScheduledThreadPoolExecutorExecuteScanGroupCalc == null) {
+            this.mapScheduledThreadPoolExecutorExecuteScanGroupCalc = new HashMap<>();
+        }
+        return this.mapScheduledThreadPoolExecutorExecuteScanGroupCalc;
+    }
+
+    public void setMapScheduledThreadPoolExecutorExecuteScanGroupCalc(Map<Long, ScheduledThreadPoolExecutor> mapScheduledThreadPoolExecutorExecuteScanGroupCalc) {
+        this.mapScheduledThreadPoolExecutorExecuteScanGroupCalc = mapScheduledThreadPoolExecutorExecuteScanGroupCalc;
+    }
+
+    public ScheduledThreadPoolExecutor getScheduledThreadPoolExecutorRefreshTagScadaCassandra() {
+        if (this.scheduledThreadPoolExecutorRefreshTagScadaCassandra == null) {
+            this.scheduledThreadPoolExecutorRefreshTagScadaCassandra = new ScheduledThreadPoolExecutor(0);
+        }
+        return this.scheduledThreadPoolExecutorRefreshTagScadaCassandra;
+    }
+
+    public void setScheduledThreadPoolExecutorRefreshTagScadaCassandra(ScheduledThreadPoolExecutor scheduledThreadPoolExecutorRefreshTagScadaCassandra) {
+        this.scheduledThreadPoolExecutorRefreshTagScadaCassandra = scheduledThreadPoolExecutorRefreshTagScadaCassandra;
+    }
+
+    public List<String> getLstTagsScadaFromCassandraData() {
+        return this.getLstTagsScadaFromCassandra();
+    }
+
+    public void setLstTagsScadaFromCassandraData(List<String> lstTagsScadaFromCassandra) {
+        this.setLstTagsScadaFromCassandra(lstTagsScadaFromCassandra);
+    }
+
+    public List<String> getLstTagsScadaFromCassandra() {
+        if (this.lstTagsScadaFromCassandra == null) {
+            this.lstTagsScadaFromCassandra = new ArrayList<>();
+        }
+        return this.lstTagsScadaFromCassandra;
+    }
+
+    public void setLstTagsScadaFromCassandra(List<String> lstTagsScadaFromCassandra) {
+        this.lstTagsScadaFromCassandra = lstTagsScadaFromCassandra;
+    }
 
     public void buildSession() {
         Logger logger = LoggerFactory.getLogger(SrvProcessManagerImpl.class);
@@ -112,10 +214,10 @@ public class SrvProcessManagerImpl implements SrvProcessManager {
         return null;
     }
 
-    public Map<String, Map<Calendar, Double>> getMapAvgValueTagListPiFromCassandraServerV3(List<String> lstTags, Calendar calendarStart, Calendar calendarEnd) throws Exception {
+    public SortedMap<String, SortedMap<Calendar, Double>> getMapAvgValueTagListPiFromCassandraServerV3(List<String> lstTags, Calendar calendarStart, Calendar calendarEnd) throws Exception {
 
         Logger logger = LoggerFactory.getLogger(SrvProcessManagerImpl.class);
-        Map<String, Map<Calendar, Double>> mapRes = new HashMap<>();
+        SortedMap<String, SortedMap<Calendar, Double>> mapRes = new TreeMap<>();
         if (lstTags == null) {
             return mapRes;
         }
@@ -133,14 +235,14 @@ public class SrvProcessManagerImpl implements SrvProcessManager {
             String sql = "SELECT tag_data, time_stamp_local_data, value_data FROM ccp_data.analog WHERE tag_data IN (";
             Integer sizeList = lstTags.size();
             for (Integer i = 0; i < sizeList; i++) {
-                mapRes.put(lstTags.get(i), new LinkedHashMap<>());
+                mapRes.put(lstTags.get(i), new TreeMap<>());
                 sql += "'" + lstTags.get(i) + "'";
                 if (i != (sizeList - 1)) {
                     sql += ",";
                 }
             }
             sql += ")";
-            sql += " AND time_stamp_local_data >= '" + GeneralsEjb.getDesFechaDiaMesAnioHorasSqlFormat(calendarStartAux) + "-0500' AND  time_stamp_local_data <= '" + GeneralsEjb.getDesFechaDiaMesAnioHorasSqlFormat(calendarEndAux) + "-0500'";
+            sql += " AND time_stamp_local_data >= '" + GeneralsEjb.getDesFechaDiaMesAnioHorasSqlFormat(calendarStartAux) + "-0500' AND  time_stamp_local_data <= '" + GeneralsEjb.getDesFechaDiaMesAnioHorasSqlFormat(calendarEndAux) + "-0500' ORDER BY time_stamp_local_data ASC";
             System.out.println("SQL EXEC CASSANDRA: " + sql);
             logger.info("SQL EXEC CASSANDRA: " + sql);
             ResultSet rs = this.getLstRowFromCassandra(sql);
@@ -179,6 +281,7 @@ public class SrvProcessManagerImpl implements SrvProcessManager {
                 try {
                     Calendar calendarAux = Calendar.getInstance(TimeZone.getTimeZone("America/Bogota"));
                     calendarAux.setTime(dateTimeValue);
+                    //logger.info("DATASTR_01: " + dateTimeValue.toString());
                     //calendarAux.setTimeZone(TimeZone.getTimeZone("America/Bogota"));
                     //calendarAux.add(Calendar.HOUR_OF_DAY, -5);
                     //String keyTime = GeneralsEjb.getDesFechaDiaMesAnioHorasSqlFormatDDMMYYYYHHMMSSQQQQ(calendarAux);
@@ -416,6 +519,15 @@ public class SrvProcessManagerImpl implements SrvProcessManager {
         }
     }
 
+    private void initScanGroupCalc() {
+        List<ScanGroupCalc> lstScanGroupCalcs = this.getSrvScanGroupCalc().getLstScanGroupCalcActivate();
+        for (ScanGroupCalc scanGroupCalc : lstScanGroupCalcs) {
+            ScheduledThreadPoolExecutor scanScheduledThreadPoolExecutor = new ScheduledThreadPoolExecutor(0);
+            scanScheduledThreadPoolExecutor.scheduleWithFixedDelay(new SrvExecuteTimerScanGroupCalc(this, scanGroupCalc), 10, 5, TimeUnit.SECONDS);
+            this.getMapScheduledThreadPoolExecutorExecuteScanGroupCalc().put(scanGroupCalc.getId(), scanScheduledThreadPoolExecutor);
+        }
+    }
+
     @PostConstruct
     public void initServices() {
         String[] args = this.getArgs().getSourceArgs();
@@ -432,7 +544,32 @@ public class SrvProcessManagerImpl implements SrvProcessManager {
         }
         this.initServiceClient(lstSgNames);
 
-        this.getScheduledThreadPoolExecutorData().scheduleWithFixedDelay(new SrvTimerGetDataFromServices(this.getSrvProcessManager()), 5, 3, TimeUnit.SECONDS);
+        this.getScheduledThreadPoolExecutorData().scheduleWithFixedDelay(new SrvTimerGetDataFromServices(this.getSrvProcessManager()), 4, 1, TimeUnit.SECONDS);
+
+        this.initScanGroupCalc();
+        
+        this.getScheduledThreadPoolExecutorRefreshTagScadaCassandra().scheduleWithFixedDelay(new Runnable() {
+            @Override
+            public void run() {
+                List<String> lstTagsScadaFromScada = new ArrayList<>();
+                try {
+                    Map<Long, List<ScanGroupEngItem>> mapScanGroupEngItem = getSrvTagsScada().getMapScanGroupEngItemByIdScanGroupEng();
+                    for (Long idScanGroupItem : mapScanGroupEngItem.keySet()) {
+                        List<ScanGroupEngItem> lstGroupEngItems = mapScanGroupEngItem.get(idScanGroupItem);
+                        if (lstGroupEngItems != null) {
+                            for (ScanGroupEngItem scanGroupEngItem : lstGroupEngItems) {
+                                if (!lstTagsScadaFromScada.contains(scanGroupEngItem.getTagRef())) {
+                                    lstTagsScadaFromScada.add(scanGroupEngItem.getTagRef());
+                                }
+                            }
+                        }
+                    }
+                    setLstTagsScadaFromCassandraData(lstTagsScadaFromScada);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }, 0, 1, TimeUnit.HOURS);
     }
 
     @PreDestroy

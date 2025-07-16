@@ -8,7 +8,10 @@ import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.SortedMap;
+import java.util.TreeMap;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -41,9 +44,14 @@ public class GetDataFromCassandraController {
         return "Hola Mundo!";
     }
 
+    @GetMapping(path = "getLstTagsScadaFromCassandra")
+    public List<String> getLstTagsScadaFromCassandra() {
+        return this.getSrvProcessManager().getLstTagsScadaFromCassandraData();
+    }
+
     @PostMapping(path = "getMapAvgValueTagListPiFromCassandraServerV3")
-    public Map<String, Map<Calendar, Double>> getMapAvgValueTagListPiFromCassandraServerV3(@RequestBody() BeanRequestCassandraData beanRequestCassandraData) {
-        Map<String, Map<Calendar, Double>> mapRes = new HashMap<>();
+    public SortedMap<String, SortedMap<Calendar, Double>> getMapAvgValueTagListPiFromCassandraServerV3(@RequestBody() BeanRequestCassandraData beanRequestCassandraData) {
+        SortedMap<String, SortedMap<Calendar, Double>> mapRes = new TreeMap<>();
         if (beanRequestCassandraData == null) {
             return mapRes;
         }
