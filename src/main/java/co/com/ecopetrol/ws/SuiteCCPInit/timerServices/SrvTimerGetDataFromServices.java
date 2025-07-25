@@ -10,28 +10,28 @@ import org.springframework.web.client.RestTemplate;
  * @author STC
  */
 public class SrvTimerGetDataFromServices implements Runnable {
-
+    
     private SrvProcessManager srvProcessManager = null;
-
+    
     public SrvProcessManager getSrvProcessManager() {
         return srvProcessManager;
     }
-
+    
     public void setSrvProcessManager(SrvProcessManager srvProcessManager) {
         this.srvProcessManager = srvProcessManager;
     }
-
+    
     public SrvTimerGetDataFromServices(SrvProcessManager srvProcessManager) {
         this.srvProcessManager = srvProcessManager;
     }
-
+    
     private SimpleClientHttpRequestFactory getClientHttpRequestFactory() {
         SimpleClientHttpRequestFactory clientHttpRequestFactory = new SimpleClientHttpRequestFactory();
         clientHttpRequestFactory.setConnectTimeout(4000);
         clientHttpRequestFactory.setReadTimeout(4000);
         return clientHttpRequestFactory;
     }
-
+    
     @Override
     public void run() {
         if (this.getSrvProcessManager() == null) {
@@ -61,15 +61,17 @@ public class SrvTimerGetDataFromServices implements Runnable {
             if (mapValues == null) {
                 continue;
             }
-           // System.out.println("        --> SIZE_RESPONSE: " + mapValues.keySet().size());
+            // System.out.println("        --> SIZE_RESPONSE: " + mapValues.keySet().size());
             if (mapValues == null) {
                 continue;
             }
             if (mapValues.isEmpty()) {
                 continue;
             }
-            this.getSrvProcessManager().addAllMapSetValues(mapValues);
+            for (String tagLabel : mapValues.keySet()) {
+                this.getSrvProcessManager().putMapSetValues(tagLabel, mapValues.get(tagLabel));
+            }            
         }
     }
-
+    
 }

@@ -10,7 +10,7 @@ import java.util.SortedMap;
  * @author STC
  */
 public interface SrvProcessManager {
-    
+
     public void saveAnalogDataCassandra(String tagData, Double valueData) throws Exception;
 
     public List<String> getLstTagsScadaFromCassandraData();
@@ -18,6 +18,8 @@ public interface SrvProcessManager {
     public SortedMap<String, SortedMap<Calendar, Double>> getMapAvgValueTagListPiFromCassandraServerV3(List<String> lstTags, Calendar calendarStart, Calendar calendarEnd) throws Exception;
 
     public void addAllMapSetValues(Map<String, Double> mapValues);
+
+    public void putMapSetValues(String tag, Double valueData);
 
     public Map<String, Double> getMapValuesFromRTUScadaData();
 

@@ -20,14 +20,11 @@ import java.io.InputStreamReader;
 import java.net.InetSocketAddress;
 import java.text.SimpleDateFormat;
 import java.time.Instant;
-import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.SortedMap;
@@ -140,8 +137,15 @@ public class SrvProcessManagerImpl implements SrvProcessManager {
         this.scheduledThreadPoolExecutorRefreshTagScadaCassandra = scheduledThreadPoolExecutorRefreshTagScadaCassandra;
     }
 
+    @Override
     public List<String> getLstTagsScadaFromCassandraData() {
         return this.getLstTagsScadaFromCassandra();
+    }
+
+    public void addItemLstTagsScadaFromCassandraData(String tag) {
+        if (!this.getLstTagsScadaFromCassandra().contains(tag)) {
+            this.getLstTagsScadaFromCassandra().add(tag);
+        }
     }
 
     public void setLstTagsScadaFromCassandraData(List<String> lstTagsScadaFromCassandra) {
@@ -230,7 +234,7 @@ public class SrvProcessManagerImpl implements SrvProcessManager {
 
         Calendar calendarEndAux = Calendar.getInstance();
         calendarEndAux.setTime(calendarEnd.getTime());
-        System.out.println("START QUERY-CASSANDRA");
+        //System.out.println("START QUERY-CASSANDRA");
         try {
             String sql = "SELECT tag_data, time_stamp_local_data, value_data FROM ccp_data.analog WHERE tag_data IN (";
             Integer sizeList = lstTags.size();
@@ -243,10 +247,10 @@ public class SrvProcessManagerImpl implements SrvProcessManager {
             }
             sql += ")";
             sql += " AND time_stamp_local_data >= '" + GeneralsEjb.getDesFechaDiaMesAnioHorasSqlFormat(calendarStartAux) + "-0500' AND  time_stamp_local_data <= '" + GeneralsEjb.getDesFechaDiaMesAnioHorasSqlFormat(calendarEndAux) + "-0500' ORDER BY time_stamp_local_data ASC";
-            System.out.println("SQL EXEC CASSANDRA: " + sql);
-            logger.info("SQL EXEC CASSANDRA: " + sql);
+            //System.out.println("SQL EXEC CASSANDRA: " + sql);
+            //logger.info("SQL EXEC CASSANDRA: " + sql);
             ResultSet rs = this.getLstRowFromCassandra(sql);
-            logger.info("----->END QUERY-CASSANDRA");
+            //logger.info("----->END QUERY-CASSANDRA");
             //System.out.println("----->END QUERY-CASSANDRA");
             if (rs == null) {
                 return mapRes;
@@ -255,8 +259,8 @@ public class SrvProcessManagerImpl implements SrvProcessManager {
             Double valueData = null;
             java.util.Date dateTimeValue;
             List<Row> lstRows = rs.all();
-            logger.info("START PROCESSING-CASSANDRA");
-            logger.info("CNT REGS: " + lstRows.size());
+            //logger.info("START PROCESSING-CASSANDRA");
+            //logger.info("CNT REGS: " + lstRows.size());
             Integer index = 0;
             for (Row row : lstRows) {
                 //logger.info("INDEX: " + index.toString());
@@ -292,7 +296,7 @@ public class SrvProcessManagerImpl implements SrvProcessManager {
                     valueData = null;
                 }
             }
-            logger.info("END PROCESSING-CASSANDRA");
+            //logger.info("END PROCESSING-CASSANDRA");
         } catch (Exception e) {
             logger.info("ERROR01: " + e.getMessage());
             e.printStackTrace();
@@ -312,10 +316,18 @@ public class SrvProcessManagerImpl implements SrvProcessManager {
         this.scheduledThreadPoolExecutorData = scheduledThreadPoolExecutorData;
     }
 
+    @Override
     public void addAllMapSetValues(Map<String, Double> mapValues) {
         this.getMapValuesFromRTUScada().putAll(mapValues);
     }
+    
+     @Override
+    public void putMapSetValues(String tag, Double valueData) {
+        this.getMapValuesFromRTUScada().put(tag, valueData);
+    }
+    
 
+    @Override
     public Map<String, Double> getMapValuesFromRTUScadaData() {
         return this.getMapValuesFromRTUScada();
     }
@@ -521,9 +533,13 @@ public class SrvProcessManagerImpl implements SrvProcessManager {
 
     private void initScanGroupCalc() {
         List<ScanGroupCalc> lstScanGroupCalcs = this.getSrvScanGroupCalc().getLstScanGroupCalcActivate();
+        Logger logger = LoggerFactory.getLogger(SrvProcessManagerImpl.class);
         for (ScanGroupCalc scanGroupCalc : lstScanGroupCalcs) {
+            logger.info("STARTING SCANGROUP CALC: " + scanGroupCalc.getNombre());
             ScheduledThreadPoolExecutor scanScheduledThreadPoolExecutor = new ScheduledThreadPoolExecutor(0);
-            scanScheduledThreadPoolExecutor.scheduleWithFixedDelay(new SrvExecuteTimerScanGroupCalc(this, scanGroupCalc), 10, 5, TimeUnit.SECONDS);
+            logger.info("AGREGAR TAG DATA: " + scanGroupCalc.getTagOut());
+            this.addItemLstTagsScadaFromCassandraData(scanGroupCalc.getTagOut());
+            scanScheduledThreadPoolExecutor.scheduleWithFixedDelay(new SrvExecuteTimerScanGroupCalc(this, scanGroupCalc), 60, 5, TimeUnit.SECONDS);
             this.getMapScheduledThreadPoolExecutorExecuteScanGroupCalc().put(scanGroupCalc.getId(), scanScheduledThreadPoolExecutor);
         }
     }
@@ -531,7 +547,7 @@ public class SrvProcessManagerImpl implements SrvProcessManager {
     @PostConstruct
     public void initServices() {
         String[] args = this.getArgs().getSourceArgs();
-        System.out.println("SIZE_DATA: " + args.length);
+        //System.out.println("SIZE_DATA: " + args.length);
         if (args == null) {
             return;
         }
@@ -547,7 +563,7 @@ public class SrvProcessManagerImpl implements SrvProcessManager {
         this.getScheduledThreadPoolExecutorData().scheduleWithFixedDelay(new SrvTimerGetDataFromServices(this.getSrvProcessManager()), 4, 1, TimeUnit.SECONDS);
 
         this.initScanGroupCalc();
-        
+
         this.getScheduledThreadPoolExecutorRefreshTagScadaCassandra().scheduleWithFixedDelay(new Runnable() {
             @Override
             public void run() {
@@ -564,7 +580,9 @@ public class SrvProcessManagerImpl implements SrvProcessManager {
                             }
                         }
                     }
-                    setLstTagsScadaFromCassandraData(lstTagsScadaFromScada);
+                    for (String tagRef : lstTagsScadaFromScada){
+                        addItemLstTagsScadaFromCassandraData(tagRef);
+                    }                    
                 } catch (Exception e) {
                     e.printStackTrace();
                 }

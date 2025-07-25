@@ -30,14 +30,96 @@ public class ScanGroupCalc implements Serializable {
     private String descripcion;
     @Column(name = "ref_operation")
     private String refOperation;
-    @Column(name = "lst_tags")
-    private String lstTags;
     @Column(name = "tag_out")
     private String tagOut;
     @Column(name = "activo")
     private Integer activo;
     @Column(name = "est_borrado")
     private Integer estBorrado;
+
+    @Column(name = "t1")
+    private String t1;
+    @Column(name = "m1")
+    private Double m1;
+
+    @Column(name = "t2")
+    private String t2;
+    @Column(name = "m2")
+    private Double m2;
+
+    @Column(name = "t3")
+    private String t3;
+    @Column(name = "m3")
+    private Double m3;
+
+    @Column(name = "t4")
+    private String t4;
+    @Column(name = "m4")
+    private Double m4;
+
+    public String getT1() {
+        return t1;
+    }
+
+    public void setT1(String t1) {
+        this.t1 = t1;
+    }
+
+    public Double getM1() {
+        return m1;
+    }
+
+    public void setM1(Double m1) {
+        this.m1 = m1;
+    }
+
+    public String getT2() {
+        return t2;
+    }
+
+    public void setT2(String t2) {
+        this.t2 = t2;
+    }
+
+    public Double getM2() {
+        return m2;
+    }
+
+    public void setM2(Double m2) {
+        this.m2 = m2;
+    }
+
+    public String getT3() {
+        return t3;
+    }
+
+    public void setT3(String t3) {
+        this.t3 = t3;
+    }
+
+    public Double getM3() {
+        return m3;
+    }
+
+    public void setM3(Double m3) {
+        this.m3 = m3;
+    }
+
+    public String getT4() {
+        return t4;
+    }
+
+    public void setT4(String t4) {
+        this.t4 = t4;
+    }
+
+    public Double getM4() {
+        return m4;
+    }
+
+    public void setM4(Double m4) {
+        this.m4 = m4;
+    }
 
     public String getNombre() {
         return nombre;
@@ -61,14 +143,6 @@ public class ScanGroupCalc implements Serializable {
 
     public void setRefOperation(String refOperation) {
         this.refOperation = refOperation;
-    }
-
-    public String getLstTags() {
-        return lstTags;
-    }
-
-    public void setLstTags(String lstTags) {
-        this.lstTags = lstTags;
     }
 
     public String getTagOut() {
