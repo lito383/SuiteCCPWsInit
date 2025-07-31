@@ -1,6 +1,8 @@
 package co.com.ecopetrol.ws.SuiteCCPInit.controllers;
 
 import co.com.ecopetrol.ws.SuiteCCPInit.services.interfaces.SrvProcessManager;
+import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.List;
 import java.util.Map;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,6 +39,44 @@ public class InitDataController {
 
     public void setEnv(Environment env) {
         this.env = env;
+    }
+
+    
+    
+    @GetMapping(path = "getTest")
+    public String getTest() {
+
+        Calendar calendaAux = Calendar.getInstance();
+        calendaAux.set(Calendar.YEAR, 2024);
+        calendaAux.set(Calendar.MONTH, 0);
+        calendaAux.set(Calendar.DAY_OF_MONTH, 1);
+
+        Calendar calendarStart = Calendar.getInstance();
+        calendarStart.setTime(calendaAux.getTime());
+        calendarStart.set(Calendar.HOUR_OF_DAY, 0);
+        calendarStart.set(Calendar.MINUTE, 0);
+        calendarStart.set(Calendar.SECOND, 0);
+        calendarStart.set(Calendar.MILLISECOND, 0);
+
+        Calendar calendarEnd = Calendar.getInstance();
+        calendarEnd.setTime(calendaAux.getTime());
+        calendarEnd.set(Calendar.YEAR, 2025);
+        calendarEnd.set(Calendar.DAY_OF_MONTH, 20);
+        calendarEnd.set(Calendar.HOUR_OF_DAY, 0);
+        calendarEnd.set(Calendar.MINUTE, 0);
+        calendarEnd.set(Calendar.SECOND, 0);
+        calendarEnd.set(Calendar.MILLISECOND, 0);
+
+        List<String> lstTags = new ArrayList<>();
+        lstTags.add("CCP.TEST.01");
+        lstTags.add("CCP.TEST.02");
+
+        try {
+            this.getSrvProcessManager().getMapAvgValueTagListPiFromCassandraServerByPeriodo(lstTags, calendarStart, calendarEnd);
+        } catch (Exception e) {
+        }
+
+        return "";
     }
 
     @GetMapping(path = "getLstTagsScadaFromCassandra")

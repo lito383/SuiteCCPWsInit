@@ -10,6 +10,8 @@ import java.util.SortedMap;
  * @author STC
  */
 public interface SrvProcessManager {
+    
+    public Map<String, Double> getMapAvgValueTagListPiFromCassandraServerByPeriodo(List<String> lstTags, Calendar calendarStart, Calendar calendarEnd) throws Exception;
 
     public void saveAnalogDataCassandra(String tagData, Double valueData) throws Exception;
 

@@ -57,8 +57,9 @@ public class SrvProcessManagerImpl implements SrvProcessManager {
     private ScheduledThreadPoolExecutor scheduledThreadPoolExecutorData = null;
     private ScheduledThreadPoolExecutor scheduledThreadPoolExecutorRefreshTagScadaCassandra = null;
     private Map<Long, ScheduledThreadPoolExecutor> mapScheduledThreadPoolExecutorExecuteScanGroupCalc = null;
-
     private List<String> lstTagsScadaFromCassandra = null;
+    private SimpleDateFormat simpleDateFormat = null;
+    private CqlSession session = null;
 
     @Autowired
     private ApplicationArguments args;
@@ -68,8 +69,6 @@ public class SrvProcessManagerImpl implements SrvProcessManager {
     private SrvTagsScada srvTagsScada;
     @Autowired
     private SrvScanGroupCalc srvScanGroupCalc;
-
-    private SimpleDateFormat simpleDateFormat = null;
 
     public SrvScanGroupCalc getSrvScanGroupCalc() {
         return srvScanGroupCalc;
@@ -88,6 +87,73 @@ public class SrvProcessManagerImpl implements SrvProcessManager {
 
     public void setSimpleDateFormat(SimpleDateFormat simpleDateFormat) {
         this.simpleDateFormat = simpleDateFormat;
+    }
+    
+    @Override
+    public Map<String, Double> getMapAvgValueTagListPiFromCassandraServerByPeriodo(List<String> lstTags, Calendar calendarStart, Calendar calendarEnd) throws Exception {
+
+        Logger logger = LoggerFactory.getLogger(SrvProcessManagerImpl.class);
+        Map<String, Double> mapRes = new HashMap<>();
+        if (lstTags == null) {
+            return mapRes;
+        }
+        if (lstTags.isEmpty()) {
+            return mapRes;
+        }
+
+        Calendar calendarStartAux = Calendar.getInstance();
+        calendarStartAux.setTime(calendarStart.getTime());
+
+        Calendar calendarEndAux = Calendar.getInstance();
+        calendarEndAux.setTime(calendarEnd.getTime());
+        //System.out.println("START QUERY-CASSANDRA");
+        try {
+            String sql = "SELECT tag_data,  AVG(value_data) FROM ccp_data.analog WHERE tag_data IN (";
+            Integer sizeList = lstTags.size();
+            for (Integer i = 0; i < sizeList; i++) {                
+                sql += "'" + lstTags.get(i) + "'";
+                if (i != (sizeList - 1)) {
+                    sql += ",";
+                }
+            }
+            sql += ")";
+            sql += " AND time_stamp_local_data >= '" + GeneralsEjb.getDesFechaDiaMesAnioHorasSqlFormat(calendarStartAux) + "-0500' AND  time_stamp_local_data <= '" + GeneralsEjb.getDesFechaDiaMesAnioHorasSqlFormat(calendarEndAux) + "-0500' GROUP BY tag_data";
+          
+            ResultSet rs = this.getLstRowFromCassandra(sql);
+          
+            if (rs == null) {
+                return mapRes;
+            }
+            String keyTag = null;
+            Double valueData = null;            
+            List<Row> lstRows = rs.all();            
+            Integer index = 0;
+            for (Row row : lstRows) {                
+                index++;                
+                if (row.isNull(0)) {
+                    continue;
+                }                
+                if (row.isNull(1)) {
+                    continue;
+                }
+              
+                keyTag = row.getString(0);              
+              
+                valueData = row.getDouble(1);
+                try {                 
+                    mapRes.put(keyTag, valueData);
+                } catch (Exception e) {
+                    logger.info("ERROR: " + e.getMessage());
+                    valueData = null;
+                }
+            }
+            //logger.info("END PROCESSING-CASSANDRA");
+        } catch (Exception e) {
+            logger.info("ERROR01: " + e.getMessage());
+            e.printStackTrace();
+            return mapRes;
+        }
+        return mapRes;
     }
 
     @Override
@@ -164,20 +230,23 @@ public class SrvProcessManagerImpl implements SrvProcessManager {
     }
 
     public void buildSession() {
+
+        String ipCassandraServer = "127.0.0.1";
+        Integer portCassandraServer = 9042;
+        String dataCenterNameCassandraServer = "datacenter1";
+
         Logger logger = LoggerFactory.getLogger(SrvProcessManagerImpl.class);
-        String ipCluster1 = "127.0.0.1";
+        String ipCluster1 = ipCassandraServer;
 
         CqlSession cqlSessionAux = CqlSession.builder()
-                .addContactPoint(new InetSocketAddress("127.0.0.1", 9042))
-                .withLocalDatacenter("datacenter1")
+                .addContactPoint(new InetSocketAddress(ipCassandraServer, portCassandraServer))
+                .withLocalDatacenter(dataCenterNameCassandraServer)
                 .build();
         try {
             this.setSession(cqlSessionAux);
         } catch (Exception e) {
         }
     }
-
-    private CqlSession session = null;
 
     public CqlSession getSession() {
         if (this.session == null) {
@@ -218,6 +287,7 @@ public class SrvProcessManagerImpl implements SrvProcessManager {
         return null;
     }
 
+    @Override
     public SortedMap<String, SortedMap<Calendar, Double>> getMapAvgValueTagListPiFromCassandraServerV3(List<String> lstTags, Calendar calendarStart, Calendar calendarEnd) throws Exception {
 
         Logger logger = LoggerFactory.getLogger(SrvProcessManagerImpl.class);
@@ -320,12 +390,11 @@ public class SrvProcessManagerImpl implements SrvProcessManager {
     public void addAllMapSetValues(Map<String, Double> mapValues) {
         this.getMapValuesFromRTUScada().putAll(mapValues);
     }
-    
-     @Override
+
+    @Override
     public void putMapSetValues(String tag, Double valueData) {
         this.getMapValuesFromRTUScada().put(tag, valueData);
     }
-    
 
     @Override
     public Map<String, Double> getMapValuesFromRTUScadaData() {
@@ -539,13 +608,15 @@ public class SrvProcessManagerImpl implements SrvProcessManager {
             ScheduledThreadPoolExecutor scanScheduledThreadPoolExecutor = new ScheduledThreadPoolExecutor(0);
             logger.info("AGREGAR TAG DATA: " + scanGroupCalc.getTagOut());
             this.addItemLstTagsScadaFromCassandraData(scanGroupCalc.getTagOut());
-            scanScheduledThreadPoolExecutor.scheduleWithFixedDelay(new SrvExecuteTimerScanGroupCalc(this, scanGroupCalc), 60, 5, TimeUnit.SECONDS);
+            scanScheduledThreadPoolExecutor.scheduleWithFixedDelay(new SrvExecuteTimerScanGroupCalc(this, scanGroupCalc), 60, 2, TimeUnit.SECONDS);
             this.getMapScheduledThreadPoolExecutorExecuteScanGroupCalc().put(scanGroupCalc.getId(), scanScheduledThreadPoolExecutor);
         }
     }
 
     @PostConstruct
     public void initServices() {
+
+        //this.buildSessionSparkSession();
         String[] args = this.getArgs().getSourceArgs();
         //System.out.println("SIZE_DATA: " + args.length);
         if (args == null) {
@@ -580,9 +651,9 @@ public class SrvProcessManagerImpl implements SrvProcessManager {
                             }
                         }
                     }
-                    for (String tagRef : lstTagsScadaFromScada){
+                    for (String tagRef : lstTagsScadaFromScada) {
                         addItemLstTagsScadaFromCassandraData(tagRef);
-                    }                    
+                    }
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
