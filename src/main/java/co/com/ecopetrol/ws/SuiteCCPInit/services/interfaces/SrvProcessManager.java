@@ -11,6 +11,8 @@ import java.util.SortedMap;
  */
 public interface SrvProcessManager {
     
+    public void saveAnalogDataProdCbeCassandraFromExcelData(String tagData, Double valueData, String labelData, Calendar calendarData) throws Exception;
+    
     public Map<String, Double> getMapAvgValueTagListPiFromCassandraServerByPeriodo(List<String> lstTags, Calendar calendarStart, Calendar calendarEnd) throws Exception;
 
     public void saveAnalogDataCassandra(String tagData, Double valueData) throws Exception;
