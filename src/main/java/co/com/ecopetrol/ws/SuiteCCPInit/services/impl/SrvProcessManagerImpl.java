@@ -178,7 +178,7 @@ public class SrvProcessManagerImpl implements SrvProcessManager {
                 continue;
             }
             ScheduledThreadPoolExecutor scheduledThreadPoolExecutor = new ScheduledThreadPoolExecutor(0);
-            scheduledThreadPoolExecutor.scheduleWithFixedDelay(new SrvThreadGenCsvML(this, defModelRef), defModelRef.getDelayTime(), defModelRef.getPeriodoTraining(), timeUnitSelected);
+            scheduledThreadPoolExecutor.scheduleWithFixedDelay(new SrvThreadGenCsvML(this, defModelRef, this.getSrvMachineLearning()), defModelRef.getDelayTime(), defModelRef.getPeriodoTraining(), timeUnitSelected);
             this.getMapScheduledThreadPoolExecutorExecuteDefModelRef().put(defModelRef.getId(), scheduledThreadPoolExecutor);
         }
     }
@@ -833,7 +833,7 @@ public class SrvProcessManagerImpl implements SrvProcessManager {
 
         this.initRefrshMapSystemParameters();
         
-        this.initMapScheduledThreadPoolExecutorExecuteDefModelRef();
+        //this.initMapScheduledThreadPoolExecutorExecuteDefModelRef();
 
         this.getScheduledThreadPoolExecutorRefreshTagScadaCassandra().scheduleWithFixedDelay(new Runnable() {
             @Override

@@ -1,12 +1,17 @@
 package co.com.ecopetrol.ws.SuiteCCPInit.services.impl;
 
 import co.com.ecopetrol.ws.SuiteCCPInit.entities.DefModelRef;
+import co.com.ecopetrol.ws.SuiteCCPInit.entities.ModelRefBin;
 import co.com.ecopetrol.ws.SuiteCCPInit.repositories.DefModelRefRepository;
+import co.com.ecopetrol.ws.SuiteCCPInit.repositories.ModelRefBinRepository;
 import co.com.ecopetrol.ws.SuiteCCPInit.services.interfaces.SrvMachineLearning;
 import hex.Model;
 import hex.deeplearning.DeepLearning;
 import hex.deeplearning.DeepLearningModel;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -27,6 +32,16 @@ public class SrvMachineLearningImpl implements SrvMachineLearning {
 
     @Autowired
     private DefModelRefRepository defModelRefRepository;
+    @Autowired
+    private ModelRefBinRepository modelRefBinRepository;
+
+    public ModelRefBinRepository getModelRefBinRepository() {
+        return modelRefBinRepository;
+    }
+
+    public void setModelRefBinRepository(ModelRefBinRepository modelRefBinRepository) {
+        this.modelRefBinRepository = modelRefBinRepository;
+    }
 
     public DefModelRefRepository getDefModelRefRepository() {
         return defModelRefRepository;
@@ -68,14 +83,16 @@ public class SrvMachineLearningImpl implements SrvMachineLearning {
     }
 
     @Override
-    public void buildModel(String locationNameCSVInput, String locationNameModelBinary, String[] labelsInput, String labelPred) throws Exception {
-        if (H2O.getCloudSize() <= 0) {
-            // Iniciar el clúster H2O
-            H2OApp.main(new String[]{"-name", "H2OClusterCCP"});
-
-            // Esperar a que el clúster esté listo
-            H2O.waitForCloudSize(1, 10000); // Espera 1 nodo, timeout de 10 segundos
-        }
+    public void buildModel(String locationNameCSVInput, String locationNameModelBinary, String[] labelsInput, String labelPred, DefModelRef defModelRef) throws Exception {
+//        if (H2O.getCloudSize() <= 0) {
+//            
+//            
+//            // Iniciar el clúster H2O
+//            H2OApp.main(new String[]{"-name", "H2OClusterCCP"});
+//
+//            // Esperar a que el clúster esté listo
+//          H2O.waitForCloudSize(1, 10000); // Espera 1 nodo, timeout de 10 segundos
+//        }
 
         try {
             // Cargar el conjunto de datos (por ejemplo, Iris)
@@ -119,6 +136,15 @@ public class SrvMachineLearningImpl implements SrvMachineLearning {
 
             model.exportBinaryModel(locationNameModelBinary, true);
 
+            FileInputStream fileInputStreamCSVInput = new FileInputStream(locationNameCSVInput);
+            FileInputStream fileInputStreamBinary = new FileInputStream(locationNameModelBinary);
+
+            ModelRefBin modelRefBin = new ModelRefBin();
+            modelRefBin.setCsvTraining(fileInputStreamCSVInput.readAllBytes());
+            modelRefBin.setDateCreated(Calendar.getInstance().getTime());
+            modelRefBin.setModelBin(fileInputStreamBinary.readAllBytes());
+            modelRefBin.setRefModel(defModelRef.getRefModel());
+            this.getModelRefBinRepository().save(modelRefBin);
 //            // Realizar predicciones
 //            Frame predictions = model.score(frame);
 //            //Log.info("Predicciones: ");

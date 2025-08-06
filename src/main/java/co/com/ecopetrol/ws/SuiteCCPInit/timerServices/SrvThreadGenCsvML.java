@@ -2,8 +2,10 @@ package co.com.ecopetrol.ws.SuiteCCPInit.timerServices;
 
 import co.com.ecopetrol.ws.SuiteCCPInit.commons.GeneralsEjb;
 import co.com.ecopetrol.ws.SuiteCCPInit.entities.DefModelRef;
+import co.com.ecopetrol.ws.SuiteCCPInit.services.interfaces.SrvMachineLearning;
 import co.com.ecopetrol.ws.SuiteCCPInit.services.interfaces.SrvProcessManager;
 import com.opencsv.CSVWriter;
+import java.io.File;
 import java.io.FileWriter;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -19,10 +21,12 @@ public class SrvThreadGenCsvML implements Runnable {
 
     private DefModelRef defModelRef = null;
     private SrvProcessManager srvProcessManager = null;
+    private SrvMachineLearning srvMachineLearning = null;
 
-    public SrvThreadGenCsvML(SrvProcessManager srvProcessManager, DefModelRef defModelRef) {
+    public SrvThreadGenCsvML(SrvProcessManager srvProcessManager, DefModelRef defModelRef, SrvMachineLearning srvMachineLearning) {
         this.srvProcessManager = srvProcessManager;
         this.defModelRef = defModelRef;
+        this.srvMachineLearning = srvMachineLearning;
     }
 
     public DefModelRef getDefModelRef() {
@@ -31,6 +35,14 @@ public class SrvThreadGenCsvML implements Runnable {
 
     public void setDefModelRef(DefModelRef defModelRef) {
         this.defModelRef = defModelRef;
+    }
+
+    public SrvMachineLearning getSrvMachineLearning() {
+        return srvMachineLearning;
+    }
+
+    public void setSrvMachineLearning(SrvMachineLearning srvMachineLearning) {
+        this.srvMachineLearning = srvMachineLearning;
     }
 
     public SrvProcessManager getSrvProcessManager() {
@@ -44,16 +56,17 @@ public class SrvThreadGenCsvML implements Runnable {
     @Override
     public void run() {
 
-        if (this.getSrvProcessManager() == null || this.getDefModelRef() == null) {
+        if (this.getSrvProcessManager() == null || this.getDefModelRef() == null || this.getSrvMachineLearning() == null) {
             return;
         }
 
         String locationFileCSVInputML = this.getSrvProcessManager().getValueFromSystemParameter("path_csv_input_ml");
-        if (locationFileCSVInputML == null) {
+        String locationFileModelOutputML = this.getSrvProcessManager().getValueFromSystemParameter("path_model_output_ml");
+        if (locationFileCSVInputML == null || locationFileModelOutputML == null) {
             return;
         }
 
-        if (locationFileCSVInputML.equals("")) {
+        if (locationFileCSVInputML.equals("") || locationFileModelOutputML.equals("")) {
             return;
         }
 
@@ -136,7 +149,7 @@ public class SrvThreadGenCsvML implements Runnable {
                 CSVWriter cSVWriter = null;
                 String fullNameFile = locationFileCSVInputML + nameFileCSVIN;
                 try {
-                    cSVWriter = new CSVWriter(new FileWriter(fullNameFile), CSVWriter.DEFAULT_SEPARATOR, CSVWriter.NO_QUOTE_CHARACTER, CSVWriter.DEFAULT_ESCAPE_CHARACTER, CSVWriter.DEFAULT_LINE_END);                    
+                    cSVWriter = new CSVWriter(new FileWriter(fullNameFile), CSVWriter.DEFAULT_SEPARATOR, CSVWriter.NO_QUOTE_CHARACTER, CSVWriter.DEFAULT_ESCAPE_CHARACTER, CSVWriter.DEFAULT_LINE_END);
                 } catch (Exception e) {
                     System.out.println("Error al crear el archivo " + fullNameFile);
                     cSVWriter = null;
@@ -240,6 +253,16 @@ public class SrvThreadGenCsvML implements Runnable {
                     cSVWriter.close();
                 } catch (Exception e) {
                 }
+                String[] arrHeaderPred = new String[arrHeaderCSV.length - 1];
+                Integer  sizearrHeaderCSV = arrHeaderCSV.length;
+                for (Integer indexHead = 0; indexHead < sizearrHeaderCSV -2; indexHead ++){
+                    arrHeaderPred[indexHead] = arrHeaderCSV[indexHead];
+                }
+                try {
+                    this.getSrvMachineLearning().buildModel(fullNameFile, locationFileModelOutputML, arrHeaderPred, arrHeaderCSV[sizearrHeaderCSV - 1], this.getDefModelRef());
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }                
             }
 
         }

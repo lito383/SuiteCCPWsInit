@@ -14,5 +14,5 @@ public interface SrvMachineLearning {
 
     public List<String> getPredictionDataFromModel(String locationModel, String locationInputFile) throws Exception;
 
-    public void buildModel(String locationNameCSVInput, String locationNameModelBinary, String[] labelsInput, String labelPred) throws Exception;
+    public void buildModel(String locationNameCSVInput, String locationNameModelBinary, String[] labelsInput, String labelPred, DefModelRef defModelRef) throws Exception;
 }
