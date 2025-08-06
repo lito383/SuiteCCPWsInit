@@ -84,7 +84,7 @@ public class SrvProcessDocsImpl implements SrvProcessDocs {
                                         System.out.println("labelData: " + labelData);
                                         System.out.println("valueData: " + valueData);
                                         System.out.println("----->GUARDANDO");
-                                        this.getSrvProcessManager().saveAnalogDataProdCbeCassandraFromExcelData(tagData, valueData, labelData, calendarDate);   
+                                        this.getSrvProcessManager().saveAnalogDataProdCbeCassandraFromExcelData((tagData + ":" + labelData), valueData, labelData, calendarDate);   
                                         System.out.println("--------------->END GUARDANDO");
                                         System.out.println("****************END_DATA****************");                                        
                                     }

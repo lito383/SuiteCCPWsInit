@@ -1,12 +1,17 @@
 package co.com.ecopetrol.ws.SuiteCCPInit.services.impl;
 
 import co.com.ecopetrol.ws.SuiteCCPInit.commons.GeneralsEjb;
+import co.com.ecopetrol.ws.SuiteCCPInit.entities.DefModelRef;
 import co.com.ecopetrol.ws.SuiteCCPInit.entities.ScanGroupCalc;
 import co.com.ecopetrol.ws.SuiteCCPInit.entities.ScanGroupEngItem;
+import co.com.ecopetrol.ws.SuiteCCPInit.entities.SystemParameter;
+import co.com.ecopetrol.ws.SuiteCCPInit.services.interfaces.SrvMachineLearning;
 import co.com.ecopetrol.ws.SuiteCCPInit.services.interfaces.SrvProcessManager;
 import co.com.ecopetrol.ws.SuiteCCPInit.services.interfaces.SrvScanGroupCalc;
+import co.com.ecopetrol.ws.SuiteCCPInit.services.interfaces.SrvSystemParameter;
 import co.com.ecopetrol.ws.SuiteCCPInit.services.interfaces.SrvTagsScada;
 import co.com.ecopetrol.ws.SuiteCCPInit.timerServices.SrvExecuteTimerScanGroupCalc;
+import co.com.ecopetrol.ws.SuiteCCPInit.timerServices.SrvThreadGenCsvML;
 import co.com.ecopetrol.ws.SuiteCCPInit.timerServices.SrvTimerGetDataFromServices;
 import co.com.ecopetrol.ws.SuiteCCPInit.timerServices.SrvTimerLodersData;
 import com.datastax.oss.driver.api.core.CqlSession;
@@ -56,10 +61,13 @@ public class SrvProcessManagerImpl implements SrvProcessManager {
     private Map<String, Double> mapValuesFromRTUScada = null;
     private ScheduledThreadPoolExecutor scheduledThreadPoolExecutorData = null;
     private ScheduledThreadPoolExecutor scheduledThreadPoolExecutorRefreshTagScadaCassandra = null;
+    private ScheduledThreadPoolExecutor scheduledThreadPoolExecutorRefreshSystemParameter = null;
     private Map<Long, ScheduledThreadPoolExecutor> mapScheduledThreadPoolExecutorExecuteScanGroupCalc = null;
+    private Map<Long, ScheduledThreadPoolExecutor> mapScheduledThreadPoolExecutorExecuteDefModelRef = null;
     private List<String> lstTagsScadaFromCassandra = null;
     private SimpleDateFormat simpleDateFormat = null;
     private CqlSession session = null;
+    private Map<String, String> mapSystemParameter = null;
 
     @Autowired
     private ApplicationArguments args;
@@ -69,6 +77,68 @@ public class SrvProcessManagerImpl implements SrvProcessManager {
     private SrvTagsScada srvTagsScada;
     @Autowired
     private SrvScanGroupCalc srvScanGroupCalc;
+    @Autowired
+    private SrvSystemParameter srvSystemParameter;
+    @Autowired
+    private SrvMachineLearning srvMachineLearning;
+
+    public SrvMachineLearning getSrvMachineLearning() {
+        return srvMachineLearning;
+    }
+
+    public void setSrvMachineLearning(SrvMachineLearning srvMachineLearning) {
+        this.srvMachineLearning = srvMachineLearning;
+    }
+
+    public Map<Long, ScheduledThreadPoolExecutor> getMapScheduledThreadPoolExecutorExecuteDefModelRef() {
+        if (this.mapScheduledThreadPoolExecutorExecuteDefModelRef == null) {
+            this.mapScheduledThreadPoolExecutorExecuteDefModelRef = new HashMap<>();
+        }
+        return this.mapScheduledThreadPoolExecutorExecuteDefModelRef;
+    }
+
+    public void setMapScheduledThreadPoolExecutorExecuteDefModelRef(Map<Long, ScheduledThreadPoolExecutor> mapScheduledThreadPoolExecutorExecuteDefModelRef) {
+        this.mapScheduledThreadPoolExecutorExecuteDefModelRef = mapScheduledThreadPoolExecutorExecuteDefModelRef;
+    }
+
+    @Override
+    public String getValueFromSystemParameter(String nameParameter) {
+        if (!this.getMapSystemParameter().containsKey(nameParameter)) {
+            return null;
+        }
+        return this.getMapSystemParameter().get(nameParameter);
+    }
+
+    public SrvSystemParameter getSrvSystemParameter() {
+        return srvSystemParameter;
+    }
+
+    public void setSrvSystemParameter(SrvSystemParameter srvSystemParameter) {
+        this.srvSystemParameter = srvSystemParameter;
+    }
+
+    public ScheduledThreadPoolExecutor getScheduledThreadPoolExecutorRefreshSystemParameter() {
+        if (this.scheduledThreadPoolExecutorRefreshSystemParameter == null) {
+            this.scheduledThreadPoolExecutorRefreshSystemParameter = new ScheduledThreadPoolExecutor(0);
+        }
+        return this.scheduledThreadPoolExecutorRefreshSystemParameter;
+    }
+
+    public void setScheduledThreadPoolExecutorRefreshSystemParameter(ScheduledThreadPoolExecutor scheduledThreadPoolExecutorRefreshSystemParameter) {
+        this.scheduledThreadPoolExecutorRefreshSystemParameter = scheduledThreadPoolExecutorRefreshSystemParameter;
+    }
+
+    @Override
+    public Map<String, String> getMapSystemParameter() {
+        if (this.mapSystemParameter == null) {
+            this.mapSystemParameter = new HashMap<>();
+        }
+        return this.mapSystemParameter;
+    }
+
+    public void setMapSystemParameter(Map<String, String> mapSystemParameter) {
+        this.mapSystemParameter = mapSystemParameter;
+    }
 
     public SrvScanGroupCalc getSrvScanGroupCalc() {
         return srvScanGroupCalc;
@@ -87,6 +157,97 @@ public class SrvProcessManagerImpl implements SrvProcessManager {
 
     public void setSimpleDateFormat(SimpleDateFormat simpleDateFormat) {
         this.simpleDateFormat = simpleDateFormat;
+    }
+
+    private void initMapScheduledThreadPoolExecutorExecuteDefModelRef() {
+        List<DefModelRef> lstDefModelRefs = this.getSrvMachineLearning().getLstAllDefModelRef();
+        for (DefModelRef defModelRef : lstDefModelRefs) {
+            TimeUnit timeUnitSelected = null;
+            switch (defModelRef.getUomTraining()) {
+                case "DAY" -> {
+                    timeUnitSelected = TimeUnit.DAYS;
+                }
+                case "HOUR" -> {
+                    timeUnitSelected = TimeUnit.HOURS;
+                }
+                case "MINUTE" -> {
+                    timeUnitSelected = TimeUnit.MINUTES;
+                }
+            }
+            if (timeUnitSelected == null) {
+                continue;
+            }
+            ScheduledThreadPoolExecutor scheduledThreadPoolExecutor = new ScheduledThreadPoolExecutor(0);
+            scheduledThreadPoolExecutor.scheduleWithFixedDelay(new SrvThreadGenCsvML(this, defModelRef), defModelRef.getDelayTime(), defModelRef.getPeriodoTraining(), timeUnitSelected);
+            this.getMapScheduledThreadPoolExecutorExecuteDefModelRef().put(defModelRef.getId(), scheduledThreadPoolExecutor);
+        }
+    }
+
+    @Override
+    public Map<String, Double> getMapAvgValueTagListPiFromCassandraServerProdCBEByPeriodo(List<String> lstTags, String labelData, Calendar calendarStart, Calendar calendarEnd) throws Exception {
+
+        Logger logger = LoggerFactory.getLogger(SrvProcessManagerImpl.class);
+        Map<String, Double> mapRes = new HashMap<>();
+        if (lstTags == null) {
+            return mapRes;
+        }
+        if (lstTags.isEmpty()) {
+            return mapRes;
+        }
+
+        Calendar calendarStartAux = Calendar.getInstance();
+        calendarStartAux.setTime(calendarStart.getTime());
+
+        Calendar calendarEndAux = Calendar.getInstance();
+        calendarEndAux.setTime(calendarEnd.getTime());
+        //System.out.println("START QUERY-CASSANDRA");
+        try {
+            String sql = "SELECT tag_data,  AVG(value_data) FROM ccp_data.data_prod_cbe WHERE tag_data IN (";
+            Integer sizeList = lstTags.size();
+            for (Integer i = 0; i < sizeList; i++) {
+                sql += "'" + lstTags.get(i) + "'";
+                if (i != (sizeList - 1)) {
+                    sql += ",";
+                }
+            }
+            sql += ")";
+            sql += " AND time_stamp_local_data >= '" + GeneralsEjb.getDesFechaDiaMesAnioHorasSqlFormat(calendarStartAux) + "-0500' AND  time_stamp_local_data <= '" + GeneralsEjb.getDesFechaDiaMesAnioHorasSqlFormat(calendarEndAux) + "-0500' GROUP BY tag_data";
+
+            ResultSet rs = this.getLstRowFromCassandra(sql);
+
+            if (rs == null) {
+                return mapRes;
+            }
+            String keyTag = null;
+            Double valueData = null;
+            List<Row> lstRows = rs.all();
+            Integer index = 0;
+            for (Row row : lstRows) {
+                index++;
+                if (row.isNull(0)) {
+                    continue;
+                }
+                if (row.isNull(1)) {
+                    continue;
+                }
+
+                keyTag = row.getString(0);
+
+                valueData = row.getDouble(1);
+                try {
+                    mapRes.put(keyTag, valueData);
+                } catch (Exception e) {
+                    logger.info("ERROR: " + e.getMessage());
+                    valueData = null;
+                }
+            }
+            //logger.info("END PROCESSING-CASSANDRA");
+        } catch (Exception e) {
+            logger.info("ERROR01: " + e.getMessage());
+            e.printStackTrace();
+            return mapRes;
+        }
+        return mapRes;
     }
 
     @Override
@@ -450,10 +611,12 @@ public class SrvProcessManagerImpl implements SrvProcessManager {
         this.env = env;
     }
 
+    @Override
     public Map<String, Integer> getMapPortsServiceData() {
         return this.getMapPortsService();
     }
 
+    @Override
     public void setMapPortsServiceData(Map<String, Integer> mapPortsService) {
         this.setMapPortsService(mapPortsService);
     }
@@ -631,6 +794,21 @@ public class SrvProcessManagerImpl implements SrvProcessManager {
         }
     }
 
+    private void initRefrshMapSystemParameters() {
+        this.getScheduledThreadPoolExecutorRefreshSystemParameter().scheduleWithFixedDelay(() -> {
+            try {
+                Map<String, String> mapRes = new HashMap<>();
+                List<SystemParameter> lstSystemParameters = getSrvSystemParameter().getLstAllSystemParameter();
+                for (SystemParameter systemParameter : lstSystemParameters) {
+                    mapRes.put(systemParameter.getNombre(), systemParameter.getValor());
+                }
+                setMapSystemParameter(mapRes);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }, 0, 1, TimeUnit.HOURS);
+    }
+
     @PostConstruct
     public void initServices() {
 
@@ -652,6 +830,10 @@ public class SrvProcessManagerImpl implements SrvProcessManager {
         this.getScheduledThreadPoolExecutorData().scheduleWithFixedDelay(new SrvTimerGetDataFromServices(this.getSrvProcessManager()), 4, 1, TimeUnit.SECONDS);
 
         this.initScanGroupCalc();
+
+        this.initRefrshMapSystemParameters();
+        
+        this.initMapScheduledThreadPoolExecutorExecuteDefModelRef();
 
         this.getScheduledThreadPoolExecutorRefreshTagScadaCassandra().scheduleWithFixedDelay(new Runnable() {
             @Override

@@ -10,9 +10,15 @@ import java.util.SortedMap;
  * @author STC
  */
 public interface SrvProcessManager {
-    
+
+    public String getValueFromSystemParameter(String nameParameter);
+
+    public Map<String, Double> getMapAvgValueTagListPiFromCassandraServerProdCBEByPeriodo(List<String> lstTags, String labelData, Calendar calendarStart, Calendar calendarEnd) throws Exception;
+
+    public Map<String, String> getMapSystemParameter();
+
     public void saveAnalogDataProdCbeCassandraFromExcelData(String tagData, Double valueData, String labelData, Calendar calendarData) throws Exception;
-    
+
     public Map<String, Double> getMapAvgValueTagListPiFromCassandraServerByPeriodo(List<String> lstTags, Calendar calendarStart, Calendar calendarEnd) throws Exception;
 
     public void saveAnalogDataCassandra(String tagData, Double valueData) throws Exception;

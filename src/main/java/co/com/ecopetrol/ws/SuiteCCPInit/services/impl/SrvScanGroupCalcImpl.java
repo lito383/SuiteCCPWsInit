@@ -25,6 +25,7 @@ public class SrvScanGroupCalcImpl implements SrvScanGroupCalc{
         this.scanGroupCalcRepository = scanGroupCalcRepository;
     }
     
+    @Override
      public List<ScanGroupCalc> getLstScanGroupCalcActivate(){
          return this.getScanGroupCalcRepository().getLstScanGroupCalcActivate();
      }

@@ -8,6 +8,18 @@ import java.util.Calendar;
  */
 public class GeneralsEjb {
 
+    public static String getDesFechaSqlFormatFromCalendarV2(Calendar calendar) {
+        String day = String.valueOf(calendar.get(Calendar.DAY_OF_MONTH));
+        while (day.length() < 2) {
+            day = "0" + day;
+        }
+        String month = String.valueOf(calendar.get(Calendar.MONTH) + 1);
+        while (month.length() < 2) {
+            month = "0" + month;
+        }
+        return calendar.get(Calendar.YEAR) + month + day;
+    }
+
     public static String getDesFechaSqlFormatFromCalendar(Calendar calendar) {
         String day = String.valueOf(calendar.get(Calendar.DAY_OF_MONTH));
         while (day.length() < 2) {
