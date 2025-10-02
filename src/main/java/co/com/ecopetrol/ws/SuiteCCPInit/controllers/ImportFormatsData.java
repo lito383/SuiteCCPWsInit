@@ -36,4 +36,14 @@ public class ImportFormatsData {
         return "SUCCESS";
     }
 
+    @GetMapping(path = "importTemp02s")
+    public String importTemp02s() {
+        try {
+            this.getSrvProcessDocs().procerssFileTemp02();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return "SUCCESS";
+    }
+
 }

@@ -3,19 +3,21 @@ package co.com.ecopetrol.ws.SuiteCCPInit.services.impl;
 import co.com.ecopetrol.ws.SuiteCCPInit.commons.GeneralsEjb;
 import co.com.ecopetrol.ws.SuiteCCPInit.services.interfaces.SrvProcessDocs;
 import co.com.ecopetrol.ws.SuiteCCPInit.services.interfaces.SrvProcessManager;
+import java.io.File;
 import java.io.FileInputStream;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellType;
-import static org.apache.poi.ss.usermodel.CellType.NUMERIC;
 import org.apache.poi.ss.usermodel.DateUtil;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
 
 /**
@@ -27,6 +29,16 @@ public class SrvProcessDocsImpl implements SrvProcessDocs {
 
     @Autowired
     private SrvProcessManager srvProcessManager;
+    @Autowired
+    private Environment environment;
+
+    public Environment getEnvironment() {
+        return environment;
+    }
+
+    public void setEnvironment(Environment environment) {
+        this.environment = environment;
+    }
 
     public SrvProcessManager getSrvProcessManager() {
         return srvProcessManager;
@@ -34,6 +46,72 @@ public class SrvProcessDocsImpl implements SrvProcessDocs {
 
     public void setSrvProcessManager(SrvProcessManager srvProcessManager) {
         this.srvProcessManager = srvProcessManager;
+    }
+
+    @Override
+    public void procerssFileTemp02() throws Exception {
+        String fullPath = this.getEnvironment().getProperty("path.location.import_files");
+        File filePathImportFilesDirectory = new File(fullPath);
+
+        File[] arrFiles = filePathImportFilesDirectory.listFiles();
+
+        for (Integer indexFile = 0; indexFile < arrFiles.length; indexFile++) {
+            System.out.println("PROCESANDO ARCHIVO: " + arrFiles[indexFile].getName());
+            try {
+                Workbook workbook = new XSSFWorkbook(arrFiles[indexFile]);
+                Sheet sheet = workbook.getSheetAt(0);
+
+                // Iterate through each row
+                List<String> lstTagsData = new ArrayList<>();
+                Integer index = 0;
+                for (Row row : sheet) {
+                    Integer indexRowValidData = 0;
+                    if (row.getRowNum() < 4) {
+                        continue;
+                    }
+                    if (row.getRowNum() == 4) {
+                        for (Cell cell : row) {
+                            if (cell.getColumnIndex() < 2) {
+                                continue;
+                            }
+                            if (cell.getCellType() == CellType.BLANK) {
+                                break;
+                            }
+                            String tagName = cell.getStringCellValue();
+                            if (tagName == null) {
+                                break;
+                            }
+                            if (tagName.trim().equals("")) {
+                                break;
+                            }
+                            lstTagsData.add(tagName.trim());
+                            indexRowValidData++;
+                        }
+                    } else {
+                        System.out.println(index.toString());
+                        Calendar calendarDateValue = null;
+                        for (Cell cell : row) {
+                            if (cell.getColumnIndex() == 0) {
+                                continue;
+                            }
+                            if (cell.getColumnIndex() == 1) {
+                                calendarDateValue = Calendar.getInstance();
+                                calendarDateValue.setTime(cell.getDateCellValue());
+                            } else {
+                                if (cell.getCellType().equals(CellType.NUMERIC)) {
+                                    Double valueData = cell.getNumericCellValue();
+                                    this.getSrvProcessManager().saveAnalogDataProdCbeCassandraFromExcelData(lstTagsData.get(cell.getColumnIndex() - 2), valueData, "", calendarDateValue);
+                                }
+                            }
+                        }
+                    }
+                }
+                arrFiles[indexFile].delete();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+
     }
 
     @Override
@@ -84,9 +162,9 @@ public class SrvProcessDocsImpl implements SrvProcessDocs {
                                         System.out.println("labelData: " + labelData);
                                         System.out.println("valueData: " + valueData);
                                         System.out.println("----->GUARDANDO");
-                                        this.getSrvProcessManager().saveAnalogDataProdCbeCassandraFromExcelData((tagData + ":" + labelData), valueData, labelData, calendarDate);   
+                                        this.getSrvProcessManager().saveAnalogDataProdCbeCassandraFromExcelData((tagData + ":" + labelData), valueData, labelData, calendarDate);
                                         System.out.println("--------------->END GUARDANDO");
-                                        System.out.println("****************END_DATA****************");                                        
+                                        System.out.println("****************END_DATA****************");
                                     }
                                 }
                         }

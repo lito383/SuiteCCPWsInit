@@ -102,6 +102,140 @@ public class SrvProcessManagerImpl implements SrvProcessManager {
     }
 
     @Override
+    public Map<String, Double> getMapSumValueTagListPiFromCassandraServerProdCBEByPeriodo(List<String> lstTags, String labelData, Calendar calendarStart, Calendar calendarEnd) throws Exception {
+
+        Logger logger = LoggerFactory.getLogger(SrvProcessManagerImpl.class);
+        Map<String, Double> mapRes = new HashMap<>();
+        if (lstTags == null) {
+            return mapRes;
+        }
+        if (lstTags.isEmpty()) {
+            return mapRes;
+        }
+
+        Calendar calendarStartAux = Calendar.getInstance();
+        calendarStartAux.setTime(calendarStart.getTime());
+
+        Calendar calendarEndAux = Calendar.getInstance();
+        calendarEndAux.setTime(calendarEnd.getTime());
+        //System.out.println("START QUERY-CASSANDRA");
+        try {
+            String sql = "SELECT tag_data, SUM(value_data) FROM ccp_data.data_prod_cbe WHERE tag_data IN (";
+            Integer sizeList = lstTags.size();
+            for (Integer i = 0; i < sizeList; i++) {
+                sql += "'" + lstTags.get(i) + "'";
+                if (i != (sizeList - 1)) {
+                    sql += ",";
+                }
+            }
+            sql += ")";
+            sql += " AND time_stamp_local_data >= '" + GeneralsEjb.getDesFechaDiaMesAnioHorasSqlFormat(calendarStartAux) + "-0500' AND  time_stamp_local_data <= '" + GeneralsEjb.getDesFechaDiaMesAnioHorasSqlFormat(calendarEndAux) + "-0500' GROUP BY tag_data";
+
+            ResultSet rs = this.getLstRowFromCassandra(sql);
+
+            if (rs == null) {
+                return mapRes;
+            }
+            String keyTag = null;
+            Double valueData = null;
+            List<Row> lstRows = rs.all();
+            Integer index = 0;
+            for (Row row : lstRows) {
+                index++;
+                if (row.isNull(0)) {
+                    continue;
+                }
+                if (row.isNull(1)) {
+                    continue;
+                }
+
+                keyTag = row.getString(0);
+
+                valueData = row.getDouble(1);
+                try {
+                    mapRes.put(keyTag, valueData);
+                } catch (Exception e) {
+                    logger.info("ERROR: " + e.getMessage());
+                    valueData = null;
+                }
+            }
+            //logger.info("END PROCESSING-CASSANDRA");
+        } catch (Exception e) {
+            logger.info("ERROR01: " + e.getMessage());
+            e.printStackTrace();
+            return mapRes;
+        }
+        return mapRes;
+    }
+
+    @Override
+    public Map<String, Double> getMapSumValueTagListPiFromCassandraServerByPeriodo(List<String> lstTags, Calendar calendarStart, Calendar calendarEnd) throws Exception {
+
+        Logger logger = LoggerFactory.getLogger(SrvProcessManagerImpl.class);
+        Map<String, Double> mapRes = new HashMap<>();
+        if (lstTags == null) {
+            return mapRes;
+        }
+        if (lstTags.isEmpty()) {
+            return mapRes;
+        }
+
+        Calendar calendarStartAux = Calendar.getInstance();
+        calendarStartAux.setTime(calendarStart.getTime());
+
+        Calendar calendarEndAux = Calendar.getInstance();
+        calendarEndAux.setTime(calendarEnd.getTime());
+        //System.out.println("START QUERY-CASSANDRA");
+        try {
+            String sql = "SELECT tag_data, SUM(value_data) FROM ccp_data.analog WHERE tag_data IN (";
+            Integer sizeList = lstTags.size();
+            for (Integer i = 0; i < sizeList; i++) {
+                sql += "'" + lstTags.get(i) + "'";
+                if (i != (sizeList - 1)) {
+                    sql += ",";
+                }
+            }
+            sql += ")";
+            sql += " AND time_stamp_local_data >= '" + GeneralsEjb.getDesFechaDiaMesAnioHorasSqlFormat(calendarStartAux) + "-0500' AND  time_stamp_local_data <= '" + GeneralsEjb.getDesFechaDiaMesAnioHorasSqlFormat(calendarEndAux) + "-0500' GROUP BY tag_data";
+
+            ResultSet rs = this.getLstRowFromCassandra(sql);
+
+            if (rs == null) {
+                return mapRes;
+            }
+            String keyTag = null;
+            Double valueData = null;
+            List<Row> lstRows = rs.all();
+            Integer index = 0;
+            for (Row row : lstRows) {
+                index++;
+                if (row.isNull(0)) {
+                    continue;
+                }
+                if (row.isNull(1)) {
+                    continue;
+                }
+
+                keyTag = row.getString(0);
+
+                valueData = row.getDouble(1);
+                try {
+                    mapRes.put(keyTag, valueData);
+                } catch (Exception e) {
+                    logger.info("ERROR: " + e.getMessage());
+                    valueData = null;
+                }
+            }
+            //logger.info("END PROCESSING-CASSANDRA");
+        } catch (Exception e) {
+            logger.info("ERROR01: " + e.getMessage());
+            e.printStackTrace();
+            return mapRes;
+        }
+        return mapRes;
+    }
+
+    @Override
     public String getValueFromSystemParameter(String nameParameter) {
         if (!this.getMapSystemParameter().containsKey(nameParameter)) {
             return null;
@@ -259,11 +393,9 @@ public class SrvProcessManagerImpl implements SrvProcessManager {
         calendarCurrent.setTime(calendarData.getTime());
         String desTime = this.getSimpleDateFormat().format(calendarCurrent.getTime());
         desTime += "-0000";
+        String jql = "INSERT INTO ccp_data.data_prod_cbe(id, tag_data, time_stamp_local_data, value_data, label_data) VALUES(UUID(), '" + tagData + "', '" + desTime + "', " + valueData.toString() + ", '" + labelData + "')";
+        System.out.println("QUERY CASSANDRA: " + jql);
         if (!this.getSession().isClosed()) {
-            String jql = "INSERT INTO ccp_data.data_prod_cbe(id, tag_data, time_stamp_local_data, value_data, label_data) VALUES(UUID(), '" + tagData + "', '" + desTime + "', " + valueData.toString() + ", '" + labelData + "')";
-            //Logger logger = LoggerFactory.getLogger(SrvTimerGetEngData.class);
-            //logger.info("QUERY CASSANDRA INSERT: " + jql);
-            System.out.println("QUERY CASSANDRA: " + jql);
             this.getSession().execute(jql);
         }
     }
@@ -832,9 +964,8 @@ public class SrvProcessManagerImpl implements SrvProcessManager {
         this.initScanGroupCalc();
 
         this.initRefrshMapSystemParameters();
-        
-        //this.initMapScheduledThreadPoolExecutorExecuteDefModelRef();
 
+        //this.initMapScheduledThreadPoolExecutorExecuteDefModelRef();
         this.getScheduledThreadPoolExecutorRefreshTagScadaCassandra().scheduleWithFixedDelay(new Runnable() {
             @Override
             public void run() {

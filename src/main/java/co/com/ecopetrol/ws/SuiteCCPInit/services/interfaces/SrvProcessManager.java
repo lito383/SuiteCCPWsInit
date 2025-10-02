@@ -10,6 +10,10 @@ import java.util.SortedMap;
  * @author STC
  */
 public interface SrvProcessManager {
+    
+    public Map<String, Double> getMapSumValueTagListPiFromCassandraServerProdCBEByPeriodo(List<String> lstTags, String labelData, Calendar calendarStart, Calendar calendarEnd) throws Exception;
+    
+    public Map<String, Double> getMapSumValueTagListPiFromCassandraServerByPeriodo(List<String> lstTags, Calendar calendarStart, Calendar calendarEnd) throws Exception;
 
     public String getValueFromSystemParameter(String nameParameter);
 

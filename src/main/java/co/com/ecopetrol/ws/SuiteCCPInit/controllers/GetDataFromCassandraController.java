@@ -48,6 +48,88 @@ public class GetDataFromCassandraController {
         return this.getSrvProcessManager().getLstTagsScadaFromCassandraData();
     }
 
+    @PostMapping(path = "getMapSumValueTagListPiFromCassandraServerProdCBEByPeriodo")
+    public Map<String, Double> getMapSumValueTagListPiFromCassandraServerProdCBEByPeriodo(@RequestBody() BeanRequestCassandraData beanRequestCassandraData) {
+        Map<String, Double> mapRes = new HashMap<>();
+        if (beanRequestCassandraData == null) {
+            return mapRes;
+        }
+        String strLstTags = beanRequestCassandraData.getStrLstTags();
+        String strCalendarStart = beanRequestCassandraData.getStrCalendarStart();
+        String strCalendarEnd = beanRequestCassandraData.getStrCalendarEnd();
+        if (strLstTags == null || strCalendarStart == null || strCalendarEnd == null || this.getSrvProcessManager() == null) {
+            return mapRes;
+        }
+        if (strLstTags.trim().equals("") || strCalendarStart.trim().equals("") || strCalendarEnd.trim().equals("")) {
+            return mapRes;
+        }
+        String[] arrLstTags = strLstTags.split(";");
+        if (arrLstTags.length == 0) {
+            return mapRes;
+        }
+        SimpleDateFormat simnDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        Calendar calendarStart = Calendar.getInstance();
+        try {
+            Date dateStart = simnDateFormat.parse(strCalendarStart);
+            calendarStart.setTime(dateStart);
+        } catch (ParseException e) {
+            return mapRes;
+        }
+        Calendar calendarEnd = Calendar.getInstance();
+        try {
+            Date dateEnd = simnDateFormat.parse(strCalendarEnd);
+            calendarEnd.setTime(dateEnd);
+        } catch (ParseException e) {
+            return mapRes;
+        }
+        try {
+            return this.getSrvProcessManager().getMapSumValueTagListPiFromCassandraServerProdCBEByPeriodo(Arrays.asList(arrLstTags), "", calendarStart, calendarEnd);
+        } catch (Exception e) {
+            return mapRes;
+        }
+    }
+
+    @PostMapping(path = "getMapSumValueTagListPiFromCassandraServerByPeriodo")
+    public Map<String, Double> getMapSumValueTagListPiFromCassandraServerByPeriodo(@RequestBody() BeanRequestCassandraData beanRequestCassandraData) {
+        Map<String, Double> mapRes = new HashMap<>();
+        if (beanRequestCassandraData == null) {
+            return mapRes;
+        }
+        String strLstTags = beanRequestCassandraData.getStrLstTags();
+        String strCalendarStart = beanRequestCassandraData.getStrCalendarStart();
+        String strCalendarEnd = beanRequestCassandraData.getStrCalendarEnd();
+        if (strLstTags == null || strCalendarStart == null || strCalendarEnd == null || this.getSrvProcessManager() == null) {
+            return mapRes;
+        }
+        if (strLstTags.trim().equals("") || strCalendarStart.trim().equals("") || strCalendarEnd.trim().equals("")) {
+            return mapRes;
+        }
+        String[] arrLstTags = strLstTags.split(";");
+        if (arrLstTags.length == 0) {
+            return mapRes;
+        }
+        SimpleDateFormat simnDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        Calendar calendarStart = Calendar.getInstance();
+        try {
+            Date dateStart = simnDateFormat.parse(strCalendarStart);
+            calendarStart.setTime(dateStart);
+        } catch (ParseException e) {
+            return mapRes;
+        }
+        Calendar calendarEnd = Calendar.getInstance();
+        try {
+            Date dateEnd = simnDateFormat.parse(strCalendarEnd);
+            calendarEnd.setTime(dateEnd);
+        } catch (ParseException e) {
+            return mapRes;
+        }
+        try {
+            return this.getSrvProcessManager().getMapSumValueTagListPiFromCassandraServerByPeriodo(Arrays.asList(arrLstTags), calendarStart, calendarEnd);
+        } catch (Exception e) {
+            return mapRes;
+        }
+    }
+
     @PostMapping(path = "getMapAvgValueTagListPiFromCassandraServerProdCBEByPeriodo")
     public Map<String, Double> getMapAvgValueTagListPiFromCassandraServerProdCBEByPeriodo(@RequestBody() BeanRequestCassandraData beanRequestCassandraData) {
         Map<String, Double> mapRes = new HashMap<>();
