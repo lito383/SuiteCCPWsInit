@@ -45,5 +45,15 @@ public class ImportFormatsData {
         }
         return "SUCCESS";
     }
+    
+     @GetMapping(path = "importTemp03s")
+    public String importTemp03s() {
+        try {
+            this.getSrvProcessDocs().processFileTemp03();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return "SUCCESS";
+    }
 
 }

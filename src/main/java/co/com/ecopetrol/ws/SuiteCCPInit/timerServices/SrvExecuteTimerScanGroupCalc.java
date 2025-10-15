@@ -42,7 +42,7 @@ public class SrvExecuteTimerScanGroupCalc implements Runnable {
 
         if (this.getScanGroupCalc().getRefOperation().equals("ADD")) {
             Double valueRes = 0D;
-            Map<String, Double> mapRes = this.getSrvProcessManager().getMapValuesFromRTUScadaData();            
+            Map<String, Double> mapRes = this.getSrvProcessManager().getMapValuesFromRTUScadaData();
 
             if (this.getScanGroupCalc().getT1() != null && this.getScanGroupCalc().getM1() != null) {
                 String t1 = this.getScanGroupCalc().getT1();
@@ -84,9 +84,36 @@ public class SrvExecuteTimerScanGroupCalc implements Runnable {
                 }
             }
 
+            if (this.getScanGroupCalc().getT5() != null && this.getScanGroupCalc().getM5() != null) {
+                String t5 = this.getScanGroupCalc().getT5();
+                if (mapRes.containsKey(t5)) {
+                    Double r5 = mapRes.get(t5);
+                    if (r5 != null) {
+                        valueRes += (r5 * this.getScanGroupCalc().getM5());
+                    }
+                }
+            }
+
+            if (this.getScanGroupCalc().getT6() != null && this.getScanGroupCalc().getM6() != null) {
+                String t6 = this.getScanGroupCalc().getT6();
+                if (mapRes.containsKey(t6)) {
+                    Double r6 = mapRes.get(t6);
+                    if (r6 != null) {
+                        valueRes += (r6 * this.getScanGroupCalc().getM6());
+                    }
+                }
+                
+            }
+            
+            if (this.getScanGroupCalc().getNombre().equals("RED_CSBE")){
+                if (valueRes < 0D){
+                    valueRes = 0D;
+                }
+            }
+
             try {
                 this.getSrvProcessManager().putMapSetValues(this.getScanGroupCalc().getTagOut(), valueRes);
-                this.getSrvProcessManager().saveAnalogDataCassandra(this.getScanGroupCalc().getTagOut(), valueRes);                
+                this.getSrvProcessManager().saveAnalogDataCassandra(this.getScanGroupCalc().getTagOut(), valueRes);
             } catch (Exception e) {
                 e.printStackTrace();
             }

@@ -6,6 +6,8 @@ package co.com.ecopetrol.ws.SuiteCCPInit.services.interfaces;
  */
 public interface SrvProcessDocs {
 
+    public void processFileTemp03() throws Exception;
+
     public void procerssFileTemp02() throws Exception;
 
     public void procerssFileTemp01(String locationFile) throws Exception;

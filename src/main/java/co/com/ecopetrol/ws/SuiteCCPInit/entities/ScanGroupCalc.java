@@ -1,4 +1,3 @@
-
 package co.com.ecopetrol.ws.SuiteCCPInit.entities;
 
 import jakarta.persistence.Column;
@@ -54,6 +53,50 @@ public class ScanGroupCalc implements Serializable {
     @Column(name = "m4")
     private Double m4;
 
+    @Column(name = "t5")
+    private String t5;
+    @Column(name = "m5")
+    private Double m5;
+
+    @Column(name = "t6")
+    private String t6;
+    @Column(name = "m6")
+    private Double m6;
+
+    public String getT5() {
+        return t5;
+    }
+
+    public void setT5(String t5) {
+        this.t5 = t5;
+    }
+
+    public Double getM5() {
+        return m5;
+    }
+
+    public void setM5(Double m5) {
+        this.m5 = m5;
+    }
+
+    public String getT6() {
+        return t6;
+    }
+
+    public void setT6(String t6) {
+        this.t6 = t6;
+    }
+
+    public Double getM6() {
+        return m6;
+    }
+
+    public void setM6(Double m6) {
+        this.m6 = m6;
+    }
+
+    
+    
     public String getT1() {
         return t1;
     }
